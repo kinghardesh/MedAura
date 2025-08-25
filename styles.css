@@ -47,3 +47,12 @@ body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,
 .modal-card{background:#fff;border-radius:16px;padding:20px;max-width:420px;width:100%;border:1px solid var(--border);box-shadow:var(--shadow)}
 .modal-title{font-size:22px;margin-bottom:8px}
 .modal-body{color:var(--muted);margin-bottom:12px}
+/* persona layout with sidebar */
+.persona-layout{display:grid;grid-template-columns:320px 1fr;gap:20px}
+.sidebar{position:sticky;top:20px;align-self:start;display:flex;flex-direction:column;gap:12px}
+.sidebar .actions{flex-direction:column}
+@media(max-width:900px){
+  .persona-layout{grid-template-columns:1fr}
+  .sidebar{position:relative;top:auto}
+  .sidebar .actions{flex-direction:row}
+}

@@ -173,15 +173,17 @@
       h('p', {class:'persona-sub'}, i18n.t(meta.tag))
     ]));
 
-    main.appendChild(h('section', {}, [
-      h('h2', {}, i18n.t('quickActions')),
-      quickActions()
-    ]));
-
-    main.appendChild(h('section', {class:'section'}, [
-      h('h2', {}, i18n.t('recommended')),
-      personaRecommendations(slug)
-    ]));
+    const layout = h('div', {class:'persona-layout'}, [
+      h('aside', {class:'sidebar', role:'complementary', 'aria-label': i18n.t('quickActions')}, [
+        h('h2', {}, i18n.t('quickActions')),
+        quickActions()
+      ]),
+      h('section', {class:'section'}, [
+        h('h2', {}, i18n.t('recommended')),
+        personaRecommendations(slug)
+      ])
+    ]);
+    main.appendChild(layout);
   }
 
   function route(){

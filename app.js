@@ -73,16 +73,26 @@
     }
   };
 
-  const PROFILES = [
+  // Original detailed profiles
+  const DETAILED_PROFILES = [
     { slug: 'young-men', key: 'youngMen', sub: 'ymSub', tag: 'ymTag', icon: '🏃' },
     { slug: 'adult-men', key: 'adultMen', sub: 'amSub', tag: 'amTag', icon: '🧑‍⚕️' },
     { slug: 'young-women', key: 'youngWomen', sub: 'ywSub', tag: 'ywTag', icon: '🌸' },
     { slug: 'adult-women', key: 'adultWomen', sub: 'awSub', tag: 'awTag', icon: '👩‍⚕️' },
     { slug: 'older-adults', key: 'olderAdults', sub: 'oaSub', tag: 'oaTag', icon: '🧓' }
   ];
+  
+  // Main category profiles for landing page
+  const MAIN_CATEGORIES = [
+    { slug: 'men', key: 'Men', icon: '👨', subCategories: ['young-men', 'adult-men'] },
+    { slug: 'women', key: 'Women', icon: '👩', subCategories: ['young-women', 'adult-women'] },
+    { slug: 'elderly', key: 'Elderly', icon: '🧓', directSlug: 'older-adults' }
+  ];
 
   const routes = {
     '/': renderLanding,
+    '/category/men': () => renderSubCategories('men'),
+    '/category/women': () => renderSubCategories('women'),
     '/persona/young-men': () => renderPersona('young-men'),
     '/persona/adult-men': () => renderPersona('adult-men'),
     '/persona/young-women': () => renderPersona('young-women'),
@@ -92,6 +102,50 @@
     '/appointments/new': () => alert('Book a Doctor (demo)'),
     '/reminders': () => alert('Medicine Reminders (demo)')
   };
+  
+  // Function to render sub-categories for Men and Women
+  function renderSubCategories(categorySlug) {
+    const category = MAIN_CATEGORIES.find(c => c.slug === categorySlug);
+    if (!category) return renderLanding();
+    
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {class:'persona-title'}, `Choose ${category.key} Profile`),
+      h('p', {class:'persona-sub'}, `Select the profile that best matches your needs`),
+      h('a', {class:'link back-link', href:'#/', style:'display:block;margin-top:1rem;'}, 'Back to Main Categories')
+    ]));
+    
+    const grid = h('div', {class:'grid grid-profiles', role:'list'});
+    
+    // Get the sub-categories from DETAILED_PROFILES based on the category's subCategories array
+    const subProfiles = DETAILED_PROFILES.filter(p => category.subCategories.includes(p.slug));
+    
+    subProfiles.forEach(p => {
+      const card = h('article', {class:'card persona-card', tabindex:'0', role:'listitem', 'aria-label': i18n.t(p.key)}, [
+        h('div', {class:'persona-top'}, [
+          h('span', {class:'persona-icon', 'aria-hidden':'true'}, p.icon),
+          h('div', {}, [
+            h('div', {class:'persona-title'}, i18n.t(p.key)),
+            h('div', {class:'persona-sub'}, i18n.t(p.sub))
+          ])
+        ]),
+        h('div', {class:'actions'}, [
+          h('button', {class:'btn btn-primary', 'aria-label': `${i18n.t('continue')} – ${i18n.t(p.key)}`, onClick: ()=> navigate(`/persona/${p.slug}`)}, i18n.t('continue'))
+        ])
+      ]);
+      
+      card.addEventListener('click', () => navigate(`/persona/${p.slug}`));
+      card.addEventListener('keyup', (e) => { 
+        if (e.key === 'Enter' || e.key === ' ') navigate(`/persona/${p.slug}`);
+      });
+      
+      grid.appendChild(card);
+    });
+    
+    main.appendChild(grid);
+  }
 
   function h(tag, attrs={}, children=[]) {
     const el = document.createElement(tag);
@@ -121,21 +175,50 @@
     ]));
 
     const grid = h('div', {class:'grid grid-profiles', role:'list'});
-  PROFILES.forEach(p => {
-      const card = h('article', {class:'card persona-card', tabindex:'0', role:'listitem', 'aria-label': i18n.t(p.key)}, [
+    MAIN_CATEGORIES.forEach(category => {
+      const card = h('article', {class:'card persona-card', tabindex:'0', role:'listitem', 'aria-label': category.key}, [
         h('div', {class:'persona-top'}, [
-          h('span', {class:'persona-icon', 'aria-hidden':'true'}, p.icon),
+          h('span', {class:'persona-icon', 'aria-hidden':'true'}, category.icon),
           h('div', {}, [
-            h('div', {class:'persona-title'}, i18n.t(p.key)),
-            h('div', {class:'persona-sub'}, i18n.t(p.sub))
+            h('div', {class:'persona-title'}, category.key),
+            h('div', {class:'persona-sub'}, category.directSlug ? 
+              `Direct access to ${category.key} dashboard` : 
+              `Choose between different ${category.key} profiles`)
           ])
         ]),
         h('div', {class:'actions'}, [
-          h('button', {class:'btn btn-primary', 'aria-label': `${i18n.t('continue')} – ${i18n.t(p.key)}`, onClick: ()=> navigate(`/persona/${p.slug}`)}, i18n.t('continue'))
+          h('button', {class:'btn btn-primary', 'aria-label': `${i18n.t('continue')} – ${category.key}`, 
+            onClick: ()=> {
+              if (category.directSlug) {
+                // For Elderly, navigate directly to the dashboard
+                navigate(`/persona/${category.directSlug}`);
+              } else {
+                // For Men and Women, navigate to sub-category selection
+                navigate(`/category/${category.slug}`);
+              }
+            }}, 
+            i18n.t('continue'))
         ])
       ]);
-      card.addEventListener('click',()=> navigate(`/persona/${p.slug}`));
-      card.addEventListener('keyup',(e)=>{ if(e.key==='Enter' || e.key===' ') navigate(`/persona/${p.slug}`); });
+      
+      card.addEventListener('click', () => {
+        if (category.directSlug) {
+          navigate(`/persona/${category.directSlug}`);
+        } else {
+          navigate(`/category/${category.slug}`);
+        }
+      });
+      
+      card.addEventListener('keyup', (e) => { 
+        if (e.key === 'Enter' || e.key === ' ') {
+          if (category.directSlug) {
+            navigate(`/persona/${category.directSlug}`);
+          } else {
+            navigate(`/category/${category.slug}`);
+          }
+        }
+      });
+      
       grid.appendChild(card);
     });
     main.appendChild(grid);
@@ -164,7 +247,7 @@
   }
 
   function renderPersona(slug){
-    const meta = PROFILES.find(p=>p.slug===slug);
+    const meta = DETAILED_PROFILES.find(p=>p.slug===slug);
     const main = $('#main');
     main.innerHTML = '';
     

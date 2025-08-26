@@ -167,21 +167,30 @@
     const meta = PROFILES.find(p=>p.slug===slug);
     const main = $('#main');
     main.innerHTML = '';
-    main.appendChild(h('section', {class:'hero'}, [
-      h('h1', {}, i18n.t('heroTitle')),
-      h('div', {class:'badge'}, [meta.icon, i18n.t(meta.key)]),
-      h('p', {class:'persona-sub'}, i18n.t(meta.tag))
-    ]));
-
-    main.appendChild(h('section', {}, [
+    
+    // Create navigation panel for the left side
+    const navPanel = h('nav', {class:'sidebar nav-panel', role:'navigation'}, [
+      h('div', {class:'badge nav-badge'}, [meta.icon, i18n.t(meta.key)]),
       h('h2', {}, i18n.t('quickActions')),
-      quickActions()
-    ]));
-
-    main.appendChild(h('section', {class:'section'}, [
-      h('h2', {}, i18n.t('recommended')),
-      personaRecommendations(slug)
-    ]));
+      quickActions(),
+      h('a', {class:'link back-link', href:'#/'}, i18n.t('backToPersonas'))
+    ]);
+    
+    // Create main content area
+    const contentArea = h('div', {class:'content-area'}, [
+      h('section', {class:'hero'}, [
+        h('h1', {}, i18n.t('heroTitle')),
+        h('p', {class:'persona-sub'}, i18n.t(meta.tag))
+      ]),
+      h('section', {class:'section'}, [
+        h('h2', {}, i18n.t('recommended')),
+        personaRecommendations(slug)
+      ])
+    ]);
+    
+    // Create layout with navigation panel on the left and content on the right
+    const layout = h('div', {class:'persona-layout'}, [navPanel, contentArea]);
+    main.appendChild(layout);
   }
 
   function route(){

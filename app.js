@@ -100,7 +100,10 @@
     '/persona/older-adults': () => renderPersona('older-adults'),
     '/chat': () => alert('AI Health Chat (demo)'),
     '/appointments/new': () => alert('Book a Doctor (demo)'),
-    '/reminders': () => alert('Medicine Reminders (demo)')
+    '/reminders': () => alert('Medicine Reminders (demo)'),
+    '/young-men/diet': () => renderDietPage(),
+    '/young-men/bmi-calculator': () => renderBMICalculator(),
+    '/young-men/workout': () => renderWorkoutPage()
   };
   
   // Function to render sub-categories for Men and Women
@@ -252,12 +255,36 @@
     main.innerHTML = '';
     
     // Create navigation panel for the left side
-    const navPanel = h('nav', {class:'sidebar nav-panel', role:'navigation'}, [
-      h('div', {class:'badge nav-badge'}, [meta.icon, i18n.t(meta.key)]),
-      h('h2', {}, i18n.t('quickActions')),
-      quickActions(),
-      h('a', {class:'link back-link', href:'#/'}, i18n.t('backToPersonas'))
-    ]);
+    const navPanelItems = [
+      h('div', {class:'badge nav-badge'}, [meta.icon, i18n.t(meta.key)])
+    ];
+    
+    // For Young Men, use 'Features' as the section title
+    if (slug === 'young-men') {
+      navPanelItems.push(h('h2', {}, 'Features'));
+      
+      // Use buttons for all features to maintain consistent styling
+      const btn = (text, to) => h('button', {class:'btn btn-primary', onClick:()=>navigate(to)}, text);
+      
+      // Add all features as buttons with consistent styling
+      navPanelItems.push(h('div', {class:'actions'}, [
+        btn(i18n.t('aiHealthChat'), '/chat'),
+        btn(i18n.t('bookDoctor'), '/appointments/new'),
+        btn(i18n.t('medReminders'), '/reminders'),
+        btn('Diet', '/young-men/diet'),
+        btn('BMI Calculator', '/young-men/bmi-calculator'),
+        btn('Workout', '/young-men/workout')
+      ]));
+    } else {
+      // For other personas, use 'Quick Actions' as the section title
+      navPanelItems.push(h('h2', {}, i18n.t('quickActions')));
+      navPanelItems.push(quickActions());
+    }
+    
+    // Back to Personas link
+    navPanelItems.push(h('a', {class:'link back-link', href:'#/'}, i18n.t('backToPersonas')));
+    
+    const navPanel = h('nav', {class:'sidebar nav-panel', role:'navigation'}, navPanelItems);
     
     // Create main content area
     const contentArea = h('div', {class:'content-area'}, [
@@ -276,6 +303,93 @@
     main.appendChild(layout);
   }
 
+  // Diet page with placeholder content
+  function renderDietPage() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Diet'),
+      h('p', {class:'persona-sub'}, 'Nutrition tips and meal plans coming soon.')
+    ]));
+  }
+  
+  // BMI Calculator page
+  function renderBMICalculator() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'BMI Calculator'),
+      h('p', {class:'persona-sub'}, 'Calculate your Body Mass Index')
+    ]));
+    
+    const calculatorForm = h('form', {class:'bmi-form', onsubmit: (e) => {
+      e.preventDefault();
+      calculateBMI();
+    }}, [
+      h('div', {class:'form-group'}, [
+        h('label', {for:'weight'}, 'Weight (kg):'),
+        h('input', {type:'number', id:'weight', min:'30', max:'300', required:true, placeholder:'Enter weight in kg'})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'height'}, 'Height (cm):'),
+        h('input', {type:'number', id:'height', min:'100', max:'250', required:true, placeholder:'Enter height in cm'})
+      ]),
+      h('button', {type:'submit', class:'btn btn-primary'}, 'Calculate')
+    ]);
+    
+    const resultDiv = h('div', {id:'bmi-result', class:'bmi-result'});
+    
+    const container = h('div', {class:'bmi-container'}, [
+      calculatorForm,
+      resultDiv
+    ]);
+    
+    main.appendChild(container);
+    
+    // Function to calculate BMI
+    function calculateBMI() {
+      const weight = parseFloat($('#weight').value);
+      const height = parseFloat($('#height').value) / 100; // Convert cm to meters
+      
+      if (isNaN(weight) || isNaN(height) || height <= 0 || weight <= 0) {
+        resultDiv.innerHTML = '<p class="error">Please enter valid values</p>';
+        return;
+      }
+      
+      const bmi = weight / (height * height);
+      let category = '';
+      
+      if (bmi < 18.5) {
+        category = 'Underweight';
+      } else if (bmi < 25) {
+        category = 'Normal';
+      } else if (bmi < 30) {
+        category = 'Overweight';
+      } else {
+        category = 'Obese';
+      }
+      
+      resultDiv.innerHTML = `
+        <h3>Your BMI Result</h3>
+        <p><strong>BMI:</strong> ${bmi.toFixed(2)}</p>
+        <p><strong>Category:</strong> ${category}</p>
+      `;
+    }
+  }
+  
+  // Workout page with motivational heading
+  function renderWorkoutPage() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Workouts to Keep You Fit'),
+      h('p', {class:'persona-sub'}, 'Bodyweight workout videos and their benefits coming soon.')
+    ]));
+  }
+  
   function route(){
     const hash = location.hash.replace(/^#/, '') || '/';
     const match = routes[hash];

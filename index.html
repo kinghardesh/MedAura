@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedAura - Your Health Companion</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="container">
+    <header class="header centered-header">
+      <div class="logo-container">
+        <img src="logo.jpg" alt="MedAura Logo" class="logo">
+        <h1 class="app-title">MedAura</h1>
+      </div>
+      <p class="app-subtitle">Your Personal Health Companion</p>
+    </header>
+    <main id="main">
+      <!-- Content will be dynamically inserted here -->
+    </main>
+    <footer class="footer">
+      <p>&copy; 2023 MedAura. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <!-- Hyperscript-inspired helper library -->
+  <script>
+    // Simple DOM selector
+    function $(selector) {
+      return document.querySelector(selector);
+    }
+
+    // Hyperscript-inspired element creator
+    function h(tag, attrs = {}, children = []) {
+      const el = document.createElement(tag);
+      
+      // Set attributes
+      Object.entries(attrs).forEach(([key, value]) => {
+        if (key === 'style' && typeof value === 'object') {
+          Object.entries(value).forEach(([prop, val]) => {
+            el.style[prop] = val;
+          });
+        } else if (key.startsWith('on') && typeof value === 'function') {
+          el.addEventListener(key.substring(2).toLowerCase(), value);
+        } else {
+          el.setAttribute(key, value);
+        }
+      });
+      
+      // Add children
+      if (Array.isArray(children)) {
+        children.forEach(child => {
+          if (typeof child === 'string') {
+            el.appendChild(document.createTextNode(child));
+          } else if (child instanceof Node) {
+            el.appendChild(child);
+          }
+        });
+      } else if (typeof children === 'string') {
+        el.textContent = children;
+      } else if (children instanceof Node) {
+        el.appendChild(children);
+      }
+      
+      return el;
+    }
+  </script>
+  
+  <!-- Main application script -->
+  <script src="app-fixed.js"></script>
+</body>
+</html>

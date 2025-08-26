@@ -1,0 +1,1413 @@
+'use strict';
+
+(function(){
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+  const i18n = {
+    lang: 'en', // Always use English
+    t: function(key) {
+      return this.messages[this.lang][key] || key;
+    },
+    messages: {
+      en: {
+        appName: 'MedAura',
+        chooseProfile: 'Choose Your Profile',
+        subtitle: 'Personalized health guidance for everyone',
+        continue: 'Continue',
+        backToProfiles: 'Back to Profiles',
+        heroTitle: 'Welcome to MedAura',
+        quickActions: 'Top 3 Quick Actions',
+        recommended: 'Recommended for You',
+        aiHealthChat: 'AI Health Chat',
+        bookDoctor: 'Book a Doctor',
+        medReminders: 'Medicine Reminders',
+        youngMen: 'Young Men',
+        adultMen: 'Adult Men',
+        youngWomen: 'Young Women',
+        adultWomen: 'Adult Women',
+        olderAdults: 'Older Adults',
+        ymSub: 'Active routines, study & sport wellness.',
+        amSub: 'Health checkups, reminders, less stress.',
+        ywSub: 'Cycles, nutrition, balance & support.',
+        awSub: 'Preventive care, routines, family health.',
+        oaSub: 'Simple care, big buttons, instant help.',
+        ymTag: 'Build strong habits for body and mind.',
+        amTag: 'Stay on top of health—without the hassle.',
+        ywTag: 'Gentle guidance for everyday wellbeing.',
+        awTag: 'Your partner for preventive care.',
+        oaTag: 'Care that’s clear, calm, and close.'
+      },
+      hi: {
+        appName: 'MedAura',
+        choosePersona: 'अपनी पहचान चुनें',
+        subtitle: 'हर किसी के लिए व्यक्तिगत स्वास्थ्य मार्गदर्शन',
+        continue: 'जारी रखें',
+        backToPersonas: 'वापस जाएँ',
+        heroTitle: 'MedAura में आपका स्वागत है',
+        quickActions: 'शीर्ष 3 त्वरित क्रियाएँ',
+        recommended: 'आपके लिए सुझाव',
+        sos: 'आपातकाल SOS',
+        cancel: 'रद्द करें',
+        sendNow: 'अभी भेजें',
+        sendingIn: 'अलर्ट भेजा जाएगा',
+        aiHealthChat: 'एआई हेल्थ चैट',
+        bookDoctor: 'डॉक्टर से अपॉइंटमेंट',
+        medReminders: 'दवा याद दिलाना',
+        youngMen: 'Young Men',
+        adultMen: 'Adult Men',
+        youngWomen: 'Young Women',
+        adultWomen: 'Adult Women',
+        olderAdults: 'Older Adults',
+        ymSub: 'सक्रिय दिनचर्या, पढ़ाई व खेल स्वास्थ्य।',
+        amSub: 'हेल्थ चेकअप, रिमाइंडर, कम तनाव।',
+        ywSub: 'चक्र, पोषण, संतुलन व सहयोग।',
+        awSub: 'रोकथाम देखभाल, दिनचर्या, परिवार स्वास्थ्य।',
+        oaSub: 'सरल देखभाल, बड़े बटन, त्वरित मदद।',
+        ymTag: 'शरीर और मन के लिए मजबूत आदतें।',
+        amTag: 'झंझट के बिना स्वास्थ्य का ध्यान रखें।',
+        ywTag: 'दैनिक कल्याण के लिए हल्का मार्गदर्शन।',
+        awTag: 'रोकथाम देखभाल में आपका साथी।',
+        oaTag: 'स्पष्ट, शांत और पास देखभाल।'
+      }
+    },
+    t(key){
+      return this.messages[this.lang][key] || key;
+    }
+  };
+
+  // Detailed profiles for profile selection
+  const DETAILED_PROFILES = [
+    { slug: 'young-men', key: 'youngMen', sub: 'ymSub', tag: 'ymTag', icon: '🏃', description: 'Active routines, study & sport wellness.', parent: 'men' },
+    { slug: 'adult-men', key: 'adultMen', sub: 'amSub', tag: 'amTag', icon: '🧑‍⚕️', description: 'Health checkups, reminders, less stress.', parent: 'men' },
+    { slug: 'young-women', key: 'youngWomen', sub: 'ywSub', tag: 'ywTag', icon: '🌸', description: 'Cycles, nutrition, balance & support.', parent: 'women' },
+    { slug: 'adult-women', key: 'adultWomen', sub: 'awSub', tag: 'awTag', icon: '👩‍⚕️', description: 'Preventive care, routines, family health.', parent: 'women' },
+    { slug: 'older-adults', key: 'olderAdults', sub: 'oaSub', tag: 'oaTag', icon: '🧓', description: 'Simple care, big buttons, instant help.', parent: 'elders' }
+  ];
+  
+  // Main category profiles for profile pages navigation
+  const MAIN_CATEGORIES = [
+    { slug: 'men', key: 'Male', icon: '👨', subCategories: ['young-men', 'adult-men'] },
+     { slug: 'women', key: 'Female', icon: '👩', subCategories: ['young-women', 'adult-women'] },
+     { slug: 'elders', key: 'Elders', icon: '👴👵', directSlug: 'older-adults' }
+   ];
+
+  const routes = {
+    '/': renderLanding,
+    '/category/men': () => renderSubCategories('men'),
+    '/category/women': () => renderSubCategories('women'),
+    '/category/elders': () => renderProfile('older-adults'), // Direct to elders dashboard
+    '/profile/young-men': () => renderProfile('young-men'),
+    '/profile/adult-men': () => renderProfile('adult-men'),
+    '/profile/young-women': () => renderProfile('young-women'),
+    '/profile/adult-women': () => renderProfile('adult-women'),
+    '/profile/older-adults': () => renderProfile('older-adults'),
+    '/chat': () => renderAIHealthChat(),
+    '/appointments/new': () => renderBookDoctor(),
+    '/reminders': () => renderMedicineReminders(),
+    '/young-men/diet': () => renderDietPage(),
+    '/young-men/bmi-calculator': () => renderBMICalculator(),
+    '/young-men/workout': () => renderWorkoutPage(),
+    '/emergency': () => renderEmergencyPage(),
+    '/prescription-scanner': () => renderPrescriptionScanner()
+  };
+
+  // Function to render sub-categories for Men and Women
+  function renderSubCategories(categorySlug) {
+    const category = MAIN_CATEGORIES.find(c => c.slug === categorySlug);
+    if (!category) return renderLanding();
+    
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {class:'persona-title'}, `Choose ${category.key} Profile`),
+      h('p', {class:'persona-sub'}, `Select the profile that best matches your needs`),
+      h('a', {class:'link back-link', href:'#/', style:'display:block;margin-top:1rem;'}, 'Back to Main Categories')
+    ]));
+    
+    const grid = h('div', {class:'grid grid-profiles', role:'list'});
+    
+    // Get the sub-categories from DETAILED_PROFILES based on the parent property
+    const subProfiles = DETAILED_PROFILES.filter(p => p.parent === categorySlug);
+    
+    subProfiles.forEach(p => {
+      const card = h('article', {class:'card persona-card', tabindex:'0', role:'listitem', 'aria-label': i18n.t(p.key)}, [
+        h('div', {class:'persona-top'}, [
+          h('span', {class:'persona-icon', 'aria-hidden':'true'}, p.icon),
+          h('div', {}, [
+            h('div', {class:'persona-title'}, i18n.t(p.key)),
+            h('div', {class:'persona-sub'}, i18n.t(p.sub))
+          ])
+        ]),
+        h('div', {class:'actions'}, [
+          h('button', {class:'btn btn-primary', 'aria-label': `${i18n.t('continue')} – ${i18n.t(p.key)}`, onClick: ()=> navigate(`/profile/${p.slug}`)}, i18n.t('continue'))
+        ])
+      ]);
+      
+      card.addEventListener('click', () => navigate(`/profile/${p.slug}`));
+      card.addEventListener('keyup', (e) => { 
+        if (e.key === 'Enter' || e.key === ' ') navigate(`/profile/${p.slug}`);
+      });
+      
+      grid.appendChild(card);
+    });
+    
+    main.appendChild(grid);
+  }
+
+  function h(tag, attrs={}, children=[]) {
+    const el = document.createElement(tag);
+    Object.entries(attrs).forEach(([k,v]) => {
+      if (k === 'class') el.className = v;
+      else if (k === 'html') el.innerHTML = v;
+      else if (k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), v);
+      else el.setAttribute(k, v);
+    });
+    (Array.isArray(children) ? children : [children]).filter(Boolean).forEach(c => {
+      if (typeof c === 'string') el.appendChild(document.createTextNode(c));
+      else el.appendChild(c);
+    });
+    return el;
+  }
+
+  function navigate(path){
+    // Remove any existing transition classes first
+    const main = $('#main');
+    main.classList.remove('page-transition-enter', 'page-transition-enter-active', 'page-transition-exit-active');
+    
+    // Set the hash and immediately render the new page
+    location.hash = `#${path}`;
+    route(); // Immediately call route to render the new page
+  }
+
+  function renderLanding(){
+    const main = $('#main');
+    main.innerHTML = '';
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {class:'persona-title'}, i18n.t('chooseProfile')),
+      h('p', {class:'persona-sub'}, i18n.t('subtitle'))
+    ]));
+
+    const grid = h('div', {class:'grid grid-profiles', role:'list'});
+    
+    // Use the main categories for the landing page
+    MAIN_CATEGORIES.forEach(category => {
+      const card = h('article', {class:'card persona-card', tabindex:'0', role:'listitem', 'aria-label': i18n.t(category.key)}, [
+        h('div', {class:'persona-top'}, [
+          h('span', {class:'persona-icon', 'aria-hidden':'true'}, category.icon),
+          h('div', {}, [
+            h('div', {class:'persona-title'}, i18n.t(category.key)),
+            h('div', {class:'persona-sub'}, category.key === 'Elders' ? 'Simple care, big buttons, instant help.' : `${category.key} health profiles and resources.`)
+          ])
+        ]),
+        h('div', {class:'actions'}, [
+          h('button', {class:'btn btn-primary', 'aria-label': `${i18n.t('continue')} – ${i18n.t(category.key)}`, 
+            onClick: ()=> category.directSlug ? navigate(`/profile/${category.directSlug}`) : navigate(`/category/${category.slug}`)}, 
+            i18n.t('continue'))
+        ])
+      ]);
+      
+      // Add hover animation class
+      card.classList.add('hover:shadow-lg', 'transition-all', 'duration-300');
+      
+      // Fix the card click event to directly navigate without transition delay
+      card.addEventListener('click', () => {
+        if (category.directSlug) {
+          navigate(`/profile/${category.directSlug}`);
+        } else {
+          navigate(`/category/${category.slug}`);
+        }
+      });
+      
+      card.addEventListener('keyup', (e) => { 
+        if (e.key === 'Enter' || e.key === ' ') {
+          if (category.directSlug) {
+            navigate(`/profile/${category.directSlug}`);
+          } else {
+            navigate(`/category/${category.slug}`);
+          }
+        }
+      });
+      
+      grid.appendChild(card);
+    });
+    main.appendChild(grid);
+  }
+
+  function quickActions(){
+    const btn = (text, to) => h('button', {class:'btn btn-primary', onClick:()=>navigate(to)}, text);
+    return h('div', {class:'actions'}, [
+      btn(i18n.t('aiHealthChat'), '/chat'),
+      btn(i18n.t('bookDoctor'), '/appointments/new'),
+      btn(i18n.t('medReminders'), '/reminders')
+    ]);
+  }
+
+  function profileRecommendations(slug){
+    const items = {
+      'young-men': ['Study & sport wellness', 'Injury prevention basics', 'Sleep routine tips'],
+      'adult-men': ['BP/Diabetes screening', 'Stress management', 'Fitness basics'],
+      'young-women': ['Cycle tracker (mock)', 'Anemia awareness', 'Mental wellness'],
+      'adult-women': ['Preventive screenings', 'Family-care shortcuts', 'Thyroid basics'],
+      'older-adults': ['One-Tap SOS', 'Prescription scanner', 'Video call family', 'Fall-safety tips']
+    }[slug];
+    const grid = h('div', {class:'tile-grid'});
+    items.forEach(t => grid.appendChild(h('div', {class:'tile'}, [h('strong', {}, t), h('span', {class:'persona-sub'}, '—')])));
+    return grid;
+  }
+
+  function renderProfile(slug){
+    const meta = DETAILED_PROFILES.find(p=>p.slug===slug);
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    // Add elder-specific UI class if needed
+    if (slug === 'older-adults') {
+      document.body.classList.add('elder-ui');
+      $('#sos-container').classList.remove('hidden');
+    } else {
+      document.body.classList.remove('elder-ui');
+      $('#sos-container').classList.add('hidden');
+    }
+    
+    // Create navigation panel for the left side
+    const navPanelItems = [
+      h('div', {class:'badge nav-badge'}, [meta.icon, i18n.t(meta.key)])
+    ];
+    
+    // Create sidebar menu items
+    navPanelItems.push(h('h2', {}, 'Dashboard Menu'));
+    
+    // Define all menu items - customize for elder profile if needed
+    let menuItems = [
+      { text: 'AI Health Chat', icon: '💬', route: '/chat' },
+      { text: 'Book Doctor', icon: '🩺', route: '/appointments/new' },
+      { text: 'Medicine Reminders', icon: '💊', route: '/reminders' },
+      { text: 'Daily Routine', icon: '📅', route: '#' },
+      { text: 'Family Dashboard', icon: '👪', route: '#' },
+      { text: 'Health Reports', icon: '📊', route: '#' },
+      { text: 'Emergency SOS', icon: '🚨', route: '/emergency' },
+      { text: 'Prescription Scanner', icon: '📷', route: '#' },
+      { text: 'Diet', icon: '🍎', route: '/young-men/diet' },
+      { text: 'Workout', icon: '💪', route: '/young-men/workout' },
+      { text: 'BMI Calculator', icon: '📏', route: '/young-men/bmi-calculator' }
+    ];
+    
+    // Customize menu for elders
+    if (slug === 'older-adults') {
+      menuItems = [
+        { text: 'Emergency Help', icon: '🚨', route: '/emergency' },
+        { text: 'Medicine Reminders', icon: '💊', route: '/reminders' },
+        { text: 'Call Doctor', icon: '🩺', route: '/appointments/new' },
+        { text: 'Health Chat', icon: '💬', route: '/chat' },
+        { text: 'Scan Prescription', icon: '📷', route: '#' },
+        { text: 'Family Contacts', icon: '👪', route: '#' },
+        { text: 'Daily Health Tips', icon: '❤️', route: '#' }
+      ];
+    }
+    
+    // Create buttons for all menu items
+    const menuButtons = menuItems.map(item => {
+      return h('button', {
+        class: 'btn', 
+        onClick: () => navigate(item.route)
+      }, [
+        h('span', {class: 'menu-icon'}, item.icon),
+        item.text
+      ]);
+    });
+    
+    navPanelItems.push(h('div', {class:'actions'}, menuButtons));
+    
+    // Back to Personas link
+    navPanelItems.push(h('a', {class:'link back-link', href:'#/'}, i18n.t('backToProfiles')));
+    
+    const navPanel = h('nav', {class:'sidebar nav-panel', role:'navigation'}, navPanelItems);
+    
+    // Create main content area
+    const contentArea = h('div', {class:'content-area'}, [
+      h('section', {class:'hero'}, [
+        h('h1', {}, slug === 'older-adults' ? 'Welcome to Your Health Dashboard' : i18n.t('heroTitle')),
+        h('p', {class:'persona-sub'}, slug === 'older-adults' ? 'Your simplified health companion with easy access to important features' : i18n.t(meta.tag))
+      ]),
+      h('section', {class:'section'}, [
+        h('h2', {}, slug === 'older-adults' ? 'Important Quick Actions' : 'Recommended Quick Actions'),
+        h('div', {class:'quick-cards'}, [
+          // Add special quick actions for elders
+          ...(slug === 'older-adults' ? [h('div', {class:'quick-card', onClick: () => navigate('/emergency')}, [
+            h('span', {class:'quick-icon'}, '🚨'),
+            h('strong', {}, 'Emergency Help'),
+            h('span', {}, 'Get immediate assistance')
+          ])] : []),
+          createQuickCard('AI Health Assistant', '💬', 'Get instant answers to your health questions', '/chat'),
+          createQuickCard('Book a Doctor', '🩺', 'Schedule an appointment with a specialist', '/appointments/new'),
+          createQuickCard('Medicine Reminders', '💊', 'Never miss your medications again', '/reminders'),
+          slug === 'older-adults' ? createQuickCard('Emergency Help', '🚨', 'One-tap access to emergency services', '/emergency') : null,
+          slug === 'older-adults' ? createQuickCard('Prescription Scanner', '📷', 'Scan and manage your prescriptions easily', '#') : null
+        ].filter(Boolean))
+      ])
+    ]);
+    
+    // Create layout with navigation panel on the left and content on the right
+    const layout = h('div', {class:'persona-layout'}, [navPanel, contentArea]);
+    main.appendChild(layout);
+    
+    // Add page transition effect
+    main.classList.add('page-transition-enter');
+    setTimeout(() => {
+      main.classList.add('page-transition-enter-active');
+    }, 10);
+  }
+  
+  // Helper function to create quick action cards
+  function createQuickCard(title, icon, description, route) {
+    return h('div', {class:'quick-card'}, [
+      h('div', {class:'quick-card-title'}, [
+        h('span', {}, icon),
+        title
+      ]),
+      h('div', {class:'quick-card-content'}, description),
+      h('div', {class:'quick-card-action'}, [
+        h('button', {class:'btn btn-primary', onClick: () => navigate(route)}, 'Open')
+      ])
+    ]);
+  }
+
+  // Diet page with placeholder content
+  function renderDietPage() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Diet'),
+      h('p', {class:'persona-sub'}, 'Nutrition tips and meal plans coming soon.')
+    ]));
+  }
+  
+  // BMI Calculator page
+  function renderBMICalculator() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'BMI Calculator'),
+      h('p', {class:'persona-sub'}, 'Calculate your Body Mass Index')
+    ]));
+    
+    const calculatorForm = h('form', {class:'bmi-form', onsubmit: (e) => {
+      e.preventDefault();
+      calculateBMI();
+    }}, [
+      h('div', {class:'form-group'}, [
+        h('label', {for:'weight'}, 'Weight (kg):'),
+        h('input', {type:'number', id:'weight', min:'30', max:'300', required:true, placeholder:'Enter weight in kg'})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'height'}, 'Height (cm):'),
+        h('input', {type:'number', id:'height', min:'100', max:'250', required:true, placeholder:'Enter height in cm'})
+      ]),
+      h('button', {type:'submit', class:'btn btn-primary'}, 'Calculate')
+    ]);
+    
+    const resultDiv = h('div', {id:'bmi-result', class:'bmi-result'});
+    
+    const container = h('div', {class:'bmi-container'}, [
+      calculatorForm,
+      resultDiv
+    ]);
+    
+    main.appendChild(container);
+    
+    // Function to calculate BMI
+    function calculateBMI() {
+      const weight = parseFloat($('#weight').value);
+      const height = parseFloat($('#height').value) / 100; // Convert cm to meters
+      
+      if (isNaN(weight) || isNaN(height) || height <= 0 || weight <= 0) {
+        resultDiv.innerHTML = '<p class="error">Please enter valid values</p>';
+        return;
+      }
+      
+      const bmi = weight / (height * height);
+      let category = '';
+      
+      if (bmi < 18.5) {
+        category = 'Underweight';
+      } else if (bmi < 25) {
+        category = 'Normal';
+      } else if (bmi < 30) {
+        category = 'Overweight';
+      } else {
+        category = 'Obese';
+      }
+      
+      resultDiv.innerHTML = `
+        <h3>Your BMI Result</h3>
+        <p><strong>BMI:</strong> ${bmi.toFixed(2)}</p>
+        <p><strong>Category:</strong> ${category}</p>
+      `;
+    }
+  }
+  
+  // Workout page with motivational heading
+  function renderWorkoutPage() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Workouts to Keep You Fit'),
+      h('p', {class:'persona-sub'}, 'Bodyweight workout videos and their benefits coming soon.')
+    ]));
+  }
+  
+  function route(){
+    const hash = location.hash.replace(/^#/, '') || '/';
+    const match = routes[hash];
+    
+    // Clear any existing transition classes
+    const main = $('#main');
+    main.classList.remove('page-transition-enter', 'page-transition-enter-active', 'page-transition-exit-active');
+    
+    // Add enter transition classes
+    main.classList.add('page-transition-enter');
+    setTimeout(() => {
+      main.classList.add('page-transition-enter-active');
+    }, 10);
+    
+    if (match) match(); else renderLanding();
+    $('#brandText').textContent = i18n.t('appName');
+    $('#year').textContent = new Date().getFullYear();
+  }
+
+  // Emergency Page UI
+  function renderEmergencyPage() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Emergency Services'),
+      h('p', {class:'persona-sub'}, 'Quick access to emergency help and safety features')
+    ]));
+    
+    const emergencyContainer = h('div', {class:'emergency-container'}, [
+      h('button', {class:'btn btn-danger', onClick: () => showEmergencyModal()}, [
+        h('span', {}, '🚨'),
+        'Medical SOS'
+      ]),
+      h('button', {class:'btn btn-warning'}, [
+        h('span', {}, '🔒'),
+        'Unsafe Mode'
+      ]),
+      h('button', {class:'btn'}, [
+        h('span', {}, '📹'),
+        'Connect CCTV'
+      ]),
+      h('button', {class:'btn'}, [
+        h('span', {}, '👪'),
+        'Family Alert'
+      ]),
+      h('button', {class:'btn'}, [
+        h('span', {}, '🏠'),
+        'Neighbor Alert'
+      ]),
+      h('button', {class:'btn'}, [
+        h('span', {}, '📱'),
+        'Fall Detection'
+      ])
+    ]);
+    
+    main.appendChild(emergencyContainer);
+    main.appendChild(h('div', {class:'actions', style:'margin-top:20px'}, [
+      h('a', {class:'link back-link', href:'#/profile/older-adults'}, 'Back to Dashboard')
+    ]));
+  }
+  
+  // Emergency Modal
+  function showEmergencyModal() {
+    const modal = h('div', {class:'modal'}, [
+      h('div', {class:'modal-card'}, [
+        h('h2', {class:'modal-title'}, 'Emergency SOS'),
+        h('p', {class:'modal-body'}, 'This will alert emergency services and your emergency contacts.'),
+        h('div', {class:'actions'}, [
+          h('button', {class:'btn', onClick: () => document.body.removeChild(modal)}, 'Cancel'),
+          h('button', {class:'btn btn-danger', onClick: () => {
+            document.body.removeChild(modal);
+            alert('Emergency services have been notified (demo)');
+          }}, 'Send SOS')
+        ])
+      ])
+    ]);
+    
+    document.body.appendChild(modal);
+  }
+
+  // events
+  window.addEventListener('hashchange', route);
+
+  // initial
+  function render(){ route(); }
+  render();
+})();
+
+// ... existing code ...
+
+  // Function to render the AI Health Chat page
+  function renderAIHealthChat() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'AI Health Chat'),
+      h('p', {class:'persona-sub'}, 'Get instant answers to your health questions')
+    ]));
+    
+    const chatContainer = h('div', {class:'chat-container'}, [
+      h('div', {class:'chat-messages', id:'chat-messages'}, [
+        h('div', {class:'message system'}, 'Hello! I\'m your AI health assistant. How can I help you today?')
+      ]),
+      h('div', {class:'chat-input'}, [
+        h('input', {type:'text', id:'user-input', placeholder:'Type your health question here...'}),
+        h('button', {class:'btn btn-primary', onClick: () => sendMessage()}, 'Send')
+      ])
+    ]);
+    
+    main.appendChild(chatContainer);
+    
+    // Add back button
+    main.appendChild(h('div', {class:'actions', style:'margin-top:20px'}, [
+      h('a', {class:'link back-link', href:'javascript:history.back()'}, 'Back to Dashboard')
+    ]));
+    
+    // Function to handle sending messages
+    function sendMessage() {
+      const input = $('#user-input');
+      const message = input.value.trim();
+      
+      if (message) {
+        // Add user message
+        const messagesContainer = $('#chat-messages');
+        messagesContainer.appendChild(h('div', {class:'message user'}, message));
+        
+        // Clear input
+        input.value = '';
+        
+        // Simulate AI response
+        setTimeout(() => {
+          messagesContainer.appendChild(h('div', {class:'message system'}, 'This is a demo of the AI Health Chat feature. In the full version, you would receive a helpful response to your health question.'));
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 1000);
+      }
+    }
+    
+    // Allow sending message with Enter key
+    $('#user-input').addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+  }
+
+  // Function to render the Book Doctor page
+  function renderBookDoctor() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Book a Doctor'),
+      h('p', {class:'persona-sub'}, 'Schedule an appointment with a healthcare professional')
+    ]));
+    
+    const specialties = [
+      'General Physician',
+      'Cardiologist',
+      'Dermatologist',
+      'Neurologist',
+      'Pediatrician',
+      'Gynecologist',
+      'Orthopedic',
+      'ENT Specialist',
+      'Ophthalmologist',
+      'Dentist'
+    ];
+    
+    const bookingForm = h('form', {class:'booking-form', onsubmit: (e) => {
+      e.preventDefault();
+      alert('Appointment booking demo - In the full version, your appointment would be scheduled.');
+    }}, [
+      h('div', {class:'form-group'}, [
+        h('label', {for:'specialty'}, 'Select Specialty:'),
+        (() => {
+          const select = h('select', {id:'specialty', required:true});
+          select.appendChild(h('option', {value:''}, 'Choose a specialty'));
+          specialties.forEach(specialty => {
+            select.appendChild(h('option', {value:specialty.toLowerCase().replace(' ', '-')}, specialty));
+          });
+          return select;
+        })()
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'date'}, 'Preferred Date:'),
+        h('input', {type:'date', id:'date', required:true, min: new Date().toISOString().split('T')[0]})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'time'}, 'Preferred Time:'),
+        h('select', {id:'time', required:true}, [
+          h('option', {value:''}, 'Select a time'),
+          h('option', {value:'morning'}, 'Morning (9AM - 12PM)'),
+          h('option', {value:'afternoon'}, 'Afternoon (12PM - 4PM)'),
+          h('option', {value:'evening'}, 'Evening (4PM - 8PM)')
+        ])
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'notes'}, 'Additional Notes:'),
+        h('textarea', {id:'notes', rows:'4', placeholder:'Describe your symptoms or reason for visit'})
+      ]),
+      h('button', {type:'submit', class:'btn btn-primary'}, 'Book Appointment')
+    ]);
+    
+    main.appendChild(bookingForm);
+    
+    // Add back button
+    main.appendChild(h('div', {class:'actions', style:'margin-top:20px'}, [
+      h('a', {class:'link back-link', href:'javascript:history.back()'}, 'Back to Dashboard')
+    ]));
+  }
+
+  // Function to render the Medicine Reminders page
+  function renderMedicineReminders() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Medicine Reminders'),
+      h('p', {class:'persona-sub'}, 'Set up reminders for your medications')
+    ]));
+    
+    const reminderForm = h('form', {class:'reminder-form', onsubmit: (e) => {
+      e.preventDefault();
+      alert('Reminder set successfully (demo) - In the full version, you would receive reminders at the specified times.');
+    }}, [
+      h('div', {class:'form-group'}, [
+        h('label', {for:'med-name'}, 'Medication Name:'),
+        h('input', {type:'text', id:'med-name', required:true, placeholder:'e.g., Aspirin'})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'dosage'}, 'Dosage:'),
+        h('input', {type:'text', id:'dosage', required:true, placeholder:'e.g., 1 tablet'})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {}, 'Frequency:'),
+        h('div', {class:'checkbox-group'}, [
+          ['Morning', 'Afternoon', 'Evening', 'Before bed'].map(time => {
+            return h('label', {class:'checkbox-label'}, [
+              h('input', {type:'checkbox', name:'frequency', value:time.toLowerCase()}),
+              time
+            ]);
+          })
+        ])
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'start-date'}, 'Start Date:'),
+        h('input', {type:'date', id:'start-date', required:true, min: new Date().toISOString().split('T')[0]})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'end-date'}, 'End Date (Optional):'),
+        h('input', {type:'date', id:'end-date', min: new Date().toISOString().split('T')[0]})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'notes'}, 'Additional Notes:'),
+        h('textarea', {id:'notes', rows:'2', placeholder:'e.g., Take with food'})
+      ]),
+      h('button', {type:'submit', class:'btn btn-primary'}, 'Set Reminder')
+    ]);
+    
+    main.appendChild(reminderForm);
+    
+    // Add back button
+    main.appendChild(h('div', {class:'actions', style:'margin-top:20px'}, [
+      h('a', {class:'link back-link', href:'javascript:history.back()'}, 'Back to Dashboard')
+    ]));
+  }
+
+  // Function to render the Prescription Scanner page
+  function renderPrescriptionScanner() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Prescription Scanner'),
+      h('p', {class:'persona-sub'}, 'Scan and extract text from your prescriptions')
+    ]));
+    
+    const scannerContainer = h('div', {class:'scanner-container'}, [
+      h('div', {class:'upload-area', id:'upload-area'}, [
+        h('div', {class:'upload-icon'}, '📷'),
+        h('p', {}, 'Click to upload a prescription image or drag and drop here'),
+        h('input', {type:'file', id:'prescription-upload', accept:'image/*', style:'display:none'})
+      ]),
+      h('div', {class:'extracted-text-container hidden', id:'extracted-text-container'}, [
+        h('h3', {}, 'Extracted Text'),
+        h('div', {class:'extracted-text', id:'extracted-text'}),
+        h('div', {class:'actions'}, [
+          h('button', {class:'btn', id:'scan-again-btn'}, 'Scan Another'),
+          h('button', {class:'btn btn-primary', id:'save-text-btn'}, 'Save to Medications')
+        ])
+      ])
+    ]);
+    
+    main.appendChild(scannerContainer);
+    
+    // Add back button
+    main.appendChild(h('div', {class:'actions', style:'margin-top:20px'}, [
+      h('a', {class:'link back-link', href:'javascript:history.back()'}, 'Back to Dashboard')
+    ]));
+    
+    // Add event listeners after the elements are added to the DOM
+    setTimeout(() => {
+      const uploadArea = $('#upload-area');
+      const fileInput = $('#prescription-upload');
+      const extractedTextContainer = $('#extracted-text-container');
+      const extractedText = $('#extracted-text');
+      const scanAgainBtn = $('#scan-again-btn');
+      const saveTextBtn = $('#save-text-btn');
+      
+      // Click on upload area to trigger file input
+      uploadArea.addEventListener('click', () => {
+        fileInput.click();
+      });
+      
+      // Handle file selection
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          const file = e.target.files[0];
+          
+          // Show loading state
+          uploadArea.innerHTML = '<div class="loading">Processing...</div>';
+          
+          // Simulate processing delay
+          setTimeout(() => {
+            // Hide upload area and show extracted text
+            uploadArea.classList.add('hidden');
+            extractedTextContainer.classList.remove('hidden');
+            
+            // Simulate extracted text
+            extractedText.innerHTML = `
+              <p><strong>Dr. John Smith</strong><br>
+              Medical License: 12345</p>
+              <p><strong>Patient:</strong> Jane Doe<br>
+              <strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+              <p><strong>Rx:</strong></p>
+              <ol>
+                <li>Amoxicillin 500mg - Take 1 capsule three times daily for 7 days</li>
+                <li>Ibuprofen 400mg - Take 1 tablet every 6 hours as needed for pain</li>
+              </ol>
+              <p><strong>Notes:</strong> Drink plenty of water and complete the full course of antibiotics.</p>
+            `;
+          }, 2000);
+        }
+      });
+      
+      // Scan again button
+      scanAgainBtn.addEventListener('click', () => {
+        extractedTextContainer.classList.add('hidden');
+        uploadArea.classList.remove('hidden');
+        uploadArea.innerHTML = `
+          <div class="upload-icon">📷</div>
+          <p>Click to upload a prescription image or drag and drop here</p>
+        `;
+        fileInput.value = '';
+      });
+      
+      // Save text button
+      saveTextBtn.addEventListener('click', () => {
+        alert('Prescription saved successfully (demo) - In the full version, this would be added to your medications list.');
+      });
+      
+      // Drag and drop functionality
+      uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+      });
+      
+      uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+      });
+      
+      uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          fileInput.files = e.dataTransfer.files;
+          const event = new Event('change', { bubbles: true });
+          fileInput.dispatchEvent(event);
+        }
+      });
+    }, 100);
+  }
+  
+  // Function to render the Book Doctor page
+  function renderBookDoctor() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Book a Doctor'),
+      h('p', {class:'persona-sub'}, 'Schedule an appointment with a healthcare professional')
+    ]));
+    
+    const specialties = [
+      'General Physician',
+      'Cardiologist',
+      'Dermatologist',
+      'Neurologist',
+      'Pediatrician',
+      'Gynecologist',
+      'Orthopedic',
+      'ENT Specialist',
+      'Ophthalmologist',
+      'Dentist'
+    ];
+    
+    const bookingForm = h('form', {class:'booking-form', onsubmit: (e) => {
+      e.preventDefault();
+      alert('Appointment booking demo - In the full version, your appointment would be scheduled.');
+    }}, [
+      h('div', {class:'form-group'}, [
+        h('label', {for:'specialty'}, 'Select Specialty:'),
+        (() => {
+          const select = h('select', {id:'specialty', required:true});
+          select.appendChild(h('option', {value:''}, 'Choose a specialty'));
+          specialties.forEach(specialty => {
+            select.appendChild(h('option', {value:specialty.toLowerCase().replace(' ', '-')}, specialty));
+          });
+          return select;
+        })()
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'date'}, 'Preferred Date:'),
+        h('input', {type:'date', id:'date', required:true, min: new Date().toISOString().split('T')[0]})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'time'}, 'Preferred Time:'),
+        h('select', {id:'time', required:true}, [
+          h('option', {value:''}, 'Select a time'),
+          h('option', {value:'morning'}, 'Morning (9AM - 12PM)'),
+          h('option', {value:'afternoon'}, 'Afternoon (12PM - 4PM)'),
+          h('option', {value:'evening'}, 'Evening (4PM - 8PM)')
+        ])
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'notes'}, 'Additional Notes:'),
+        h('textarea', {id:'notes', rows:'4', placeholder:'Describe your symptoms or reason for visit'})
+      ]),
+      h('button', {type:'submit', class:'btn btn-primary'}, 'Book Appointment')
+    ]);
+    
+    main.appendChild(bookingForm);
+    
+    // Add back button
+    main.appendChild(h('div', {class:'actions', style:'margin-top:20px'}, [
+      h('a', {class:'link back-link', href:'javascript:history.back()'}, 'Back to Dashboard')
+    ]));
+  }
+
+  // Function to render the Medicine Reminders page
+  function renderMedicineReminders() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Medicine Reminders'),
+      h('p', {class:'persona-sub'}, 'Set up reminders for your medications')
+    ]));
+    
+    const reminderForm = h('form', {class:'reminder-form', onsubmit: (e) => {
+      e.preventDefault();
+      alert('Reminder set successfully (demo) - In the full version, you would receive reminders at the specified times.');
+    }}, [
+      h('div', {class:'form-group'}, [
+        h('label', {for:'med-name'}, 'Medication Name:'),
+        h('input', {type:'text', id:'med-name', required:true, placeholder:'e.g., Aspirin'})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'dosage'}, 'Dosage:'),
+        h('input', {type:'text', id:'dosage', required:true, placeholder:'e.g., 1 tablet'})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {}, 'Frequency:'),
+        h('div', {class:'checkbox-group'}, [
+          ['Morning', 'Afternoon', 'Evening', 'Before bed'].map(time => {
+            return h('label', {class:'checkbox-label'}, [
+              h('input', {type:'checkbox', name:'frequency', value:time.toLowerCase()}),
+              time
+            ]);
+          })
+        ])
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'start-date'}, 'Start Date:'),
+        h('input', {type:'date', id:'start-date', required:true, min: new Date().toISOString().split('T')[0]})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'end-date'}, 'End Date (Optional):'),
+        h('input', {type:'date', id:'end-date', min: new Date().toISOString().split('T')[0]})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'notes'}, 'Additional Notes:'),
+        h('textarea', {id:'notes', rows:'2', placeholder:'e.g., Take with food'})
+      ]),
+      h('button', {type:'submit', class:'btn btn-primary'}, 'Set Reminder')
+    ]);
+    
+    main.appendChild(reminderForm);
+    
+    // Add back button
+    main.appendChild(h('div', {class:'actions', style:'margin-top:20px'}, [
+      h('a', {class:'link back-link', href:'javascript:history.back()'}, 'Back to Dashboard')
+    ]));
+  }
+
+  // Function to render the Prescription Scanner page
+  function renderPrescriptionScanner() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Prescription Scanner'),
+      h('p', {class:'persona-sub'}, 'Scan and extract text from your prescriptions')
+    ]));
+    
+    const scannerContainer = h('div', {class:'scanner-container'}, [
+      h('div', {class:'upload-area', id:'upload-area'}, [
+        h('div', {class:'upload-icon'}, '📷'),
+        h('p', {}, 'Click to upload a prescription image or drag and drop here'),
+        h('input', {type:'file', id:'prescription-upload', accept:'image/*', style:'display:none'})
+      ]),
+      h('div', {class:'extracted-text-container hidden', id:'extracted-text-container'}, [
+        h('h3', {}, 'Extracted Text'),
+        h('div', {class:'extracted-text', id:'extracted-text'}),
+        h('div', {class:'actions'}, [
+          h('button', {class:'btn', id:'scan-again-btn'}, 'Scan Another'),
+          h('button', {class:'btn btn-primary', id:'save-text-btn'}, 'Save to Medications')
+        ])
+      ])
+    ]);
+    
+    main.appendChild(scannerContainer);
+    
+    // Add back button
+    main.appendChild(h('div', {class:'actions', style:'margin-top:20px'}, [
+      h('a', {class:'link back-link', href:'javascript:history.back()'}, 'Back to Dashboard')
+    ]));
+    
+    // Add event listeners after the elements are added to the DOM
+    setTimeout(() => {
+      const uploadArea = $('#upload-area');
+      const fileInput = $('#prescription-upload');
+      const extractedTextContainer = $('#extracted-text-container');
+      const extractedText = $('#extracted-text');
+      const scanAgainBtn = $('#scan-again-btn');
+      const saveTextBtn = $('#save-text-btn');
+      
+      // Click on upload area to trigger file input
+      uploadArea.addEventListener('click', () => {
+        fileInput.click();
+      });
+      
+      // Handle file selection
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          const file = e.target.files[0];
+          
+          // Show loading state
+          uploadArea.innerHTML = '<div class="loading">Processing...</div>';
+          
+          // Simulate processing delay
+          setTimeout(() => {
+            // Hide upload area and show extracted text
+            uploadArea.classList.add('hidden');
+            extractedTextContainer.classList.remove('hidden');
+            
+            // Simulate extracted text
+            extractedText.innerHTML = `
+              <p><strong>Dr. John Smith</strong><br>
+              Medical License: 12345</p>
+              <p><strong>Patient:</strong> Jane Doe<br>
+              <strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+              <p><strong>Rx:</strong></p>
+              <ol>
+                <li>Amoxicillin 500mg - Take 1 capsule three times daily for 7 days</li>
+                <li>Ibuprofen 400mg - Take 1 tablet every 6 hours as needed for pain</li>
+              </ol>
+              <p><strong>Notes:</strong> Drink plenty of water and complete the full course of antibiotics.</p>
+            `;
+          }, 2000);
+        }
+      });
+      
+      // Scan again button
+      scanAgainBtn.addEventListener('click', () => {
+        extractedTextContainer.classList.add('hidden');
+        uploadArea.classList.remove('hidden');
+        uploadArea.innerHTML = `
+          <div class="upload-icon">📷</div>
+          <p>Click to upload a prescription image or drag and drop here</p>
+        `;
+        fileInput.value = '';
+      });
+      
+      // Save text button
+      saveTextBtn.addEventListener('click', () => {
+        alert('Prescription saved successfully (demo) - In the full version, this would be added to your medications list.');
+      });
+      
+      // Drag and drop functionality
+      uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+      });
+      
+      uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+      });
+      
+      uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          fileInput.files = e.dataTransfer.files;
+          const event = new Event('change', { bubbles: true });
+          fileInput.dispatchEvent(event);
+        }
+      });
+    }, 100);
+  }
+  
+  // Function to render the Book Doctor page
+  function renderBookDoctor() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Book a Doctor'),
+      h('p', {class:'persona-sub'}, 'Schedule an appointment with a healthcare professional')
+    ]));
+    
+    const specialties = [
+      'General Physician',
+      'Cardiologist',
+      'Dermatologist',
+      'Neurologist',
+      'Pediatrician',
+      'Gynecologist',
+      'Orthopedic',
+      'ENT Specialist',
+      'Ophthalmologist',
+      'Dentist'
+    ];
+    
+    const bookingForm = h('form', {class:'booking-form', onsubmit: (e) => {
+      e.preventDefault();
+      alert('Appointment booking demo - In the full version, your appointment would be scheduled.');
+    }}, [
+      h('div', {class:'form-group'}, [
+        h('label', {for:'specialty'}, 'Select Specialty:'),
+        (() => {
+          const select = h('select', {id:'specialty', required:true});
+          select.appendChild(h('option', {value:''}, 'Choose a specialty'));
+          specialties.forEach(specialty => {
+            select.appendChild(h('option', {value:specialty.toLowerCase().replace(' ', '-')}, specialty));
+          });
+          return select;
+        })()
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'date'}, 'Preferred Date:'),
+        h('input', {type:'date', id:'date', required:true, min: new Date().toISOString().split('T')[0]})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'time'}, 'Preferred Time:'),
+        h('select', {id:'time', required:true}, [
+          h('option', {value:''}, 'Select a time'),
+          h('option', {value:'morning'}, 'Morning (9AM - 12PM)'),
+          h('option', {value:'afternoon'}, 'Afternoon (12PM - 4PM)'),
+          h('option', {value:'evening'}, 'Evening (4PM - 8PM)')
+        ])
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'notes'}, 'Additional Notes:'),
+        h('textarea', {id:'notes', rows:'4', placeholder:'Describe your symptoms or reason for visit'})
+      ]),
+      h('button', {type:'submit', class:'btn btn-primary'}, 'Book Appointment')
+    ]);
+    
+    main.appendChild(bookingForm);
+    
+    // Add back button
+    main.appendChild(h('div', {class:'actions', style:'margin-top:20px'}, [
+      h('a', {class:'link back-link', href:'javascript:history.back()'}, 'Back to Dashboard')
+    ]));
+  }
+
+  // Function to render the Medicine Reminders page
+  function renderMedicineReminders() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Medicine Reminders'),
+      h('p', {class:'persona-sub'}, 'Set up reminders for your medications')
+    ]));
+    
+    const reminderForm = h('form', {class:'reminder-form', onsubmit: (e) => {
+      e.preventDefault();
+      alert('Reminder set successfully (demo) - In the full version, you would receive reminders at the specified times.');
+    }}, [
+      h('div', {class:'form-group'}, [
+        h('label', {for:'med-name'}, 'Medication Name:'),
+        h('input', {type:'text', id:'med-name', required:true, placeholder:'e.g., Aspirin'})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'dosage'}, 'Dosage:'),
+        h('input', {type:'text', id:'dosage', required:true, placeholder:'e.g., 1 tablet'})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {}, 'Frequency:'),
+        h('div', {class:'checkbox-group'}, [
+          ['Morning', 'Afternoon', 'Evening', 'Before bed'].map(time => {
+            return h('label', {class:'checkbox-label'}, [
+              h('input', {type:'checkbox', name:'frequency', value:time.toLowerCase()}),
+              time
+            ]);
+          })
+        ])
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'start-date'}, 'Start Date:'),
+        h('input', {type:'date', id:'start-date', required:true, min: new Date().toISOString().split('T')[0]})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'end-date'}, 'End Date (Optional):'),
+        h('input', {type:'date', id:'end-date', min: new Date().toISOString().split('T')[0]})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'notes'}, 'Additional Notes:'),
+        h('textarea', {id:'notes', rows:'2', placeholder:'e.g., Take with food'})
+      ]),
+      h('button', {type:'submit', class:'btn btn-primary'}, 'Set Reminder')
+    ]);
+    
+    main.appendChild(reminderForm);
+    
+    // Add back button
+    main.appendChild(h('div', {class:'actions', style:'margin-top:20px'}, [
+      h('a', {class:'link back-link', href:'javascript:history.back()'}, 'Back to Dashboard')
+    ]));
+  }
+
+  // Function to render the Prescription Scanner page
+  function renderPrescriptionScanner() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Prescription Scanner'),
+      h('p', {class:'persona-sub'}, 'Scan and extract text from your prescriptions')
+    ]));
+    
+    const scannerContainer = h('div', {class:'scanner-container'}, [
+      h('div', {class:'upload-area', id:'upload-area'}, [
+        h('div', {class:'upload-icon'}, '📷'),
+        h('p', {}, 'Click to upload a prescription image or drag and drop here'),
+        h('input', {type:'file', id:'prescription-upload', accept:'image/*', style:'display:none'})
+      ]),
+      h('div', {class:'extracted-text-container hidden', id:'extracted-text-container'}, [
+        h('h3', {}, 'Extracted Text'),
+        h('div', {class:'extracted-text', id:'extracted-text'}),
+        h('div', {class:'actions'}, [
+          h('button', {class:'btn', id:'scan-again-btn'}, 'Scan Another'),
+          h('button', {class:'btn btn-primary', id:'save-text-btn'}, 'Save to Medications')
+        ])
+      ])
+    ]);
+    
+    main.appendChild(scannerContainer);
+    
+    // Add back button
+    main.appendChild(h('div', {class:'actions', style:'margin-top:20px'}, [
+      h('a', {class:'link back-link', href:'javascript:history.back()'}, 'Back to Dashboard')
+    ]));
+    
+    // Add event listeners after the elements are added to the DOM
+    setTimeout(() => {
+      const uploadArea = $('#upload-area');
+      const fileInput = $('#prescription-upload');
+      const extractedTextContainer = $('#extracted-text-container');
+      const extractedText = $('#extracted-text');
+      const scanAgainBtn = $('#scan-again-btn');
+      const saveTextBtn = $('#save-text-btn');
+      
+      // Click on upload area to trigger file input
+      uploadArea.addEventListener('click', () => {
+        fileInput.click();
+      });
+      
+      // Handle file selection
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          const file = e.target.files[0];
+          
+          // Show loading state
+          uploadArea.innerHTML = '<div class="loading">Processing...</div>';
+          
+          // Simulate processing delay
+          setTimeout(() => {
+            // Hide upload area and show extracted text
+            uploadArea.classList.add('hidden');
+            extractedTextContainer.classList.remove('hidden');
+            
+            // Simulate extracted text
+            extractedText.innerHTML = `
+              <p><strong>Dr. John Smith</strong><br>
+              Medical License: 12345</p>
+              <p><strong>Patient:</strong> Jane Doe<br>
+              <strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+              <p><strong>Rx:</strong></p>
+              <ol>
+                <li>Amoxicillin 500mg - Take 1 capsule three times daily for 7 days</li>
+                <li>Ibuprofen 400mg - Take 1 tablet every 6 hours as needed for pain</li>
+              </ol>
+              <p><strong>Notes:</strong> Drink plenty of water and complete the full course of antibiotics.</p>
+            `;
+          }, 2000);
+        }
+      });
+      
+      // Scan again button
+      scanAgainBtn.addEventListener('click', () => {
+        extractedTextContainer.classList.add('hidden');
+        uploadArea.classList.remove('hidden');
+        uploadArea.innerHTML = `
+          <div class="upload-icon">📷</div>
+          <p>Click to upload a prescription image or drag and drop here</p>
+        `;
+        fileInput.value = '';
+      });
+      
+      // Save text button
+      saveTextBtn.addEventListener('click', () => {
+        alert('Prescription saved successfully (demo) - In the full version, this would be added to your medications list.');
+      });
+      
+      // Drag and drop functionality
+      uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+      });
+      
+      uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+      });
+      
+      uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          fileInput.files = e.dataTransfer.files;
+          const event = new Event('change', { bubbles: true });
+          fileInput.dispatchEvent(event);
+        }
+      });
+    }, 100);
+  }
+  
+  // Function to render the Book Doctor page
+  function renderBookDoctor() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Book a Doctor'),
+      h('p', {class:'persona-sub'}, 'Schedule an appointment with a healthcare professional')
+    ]));
+    
+    const specialties = [
+      'General Physician',
+      'Cardiologist',
+      'Dermatologist',
+      'Neurologist',
+      'Pediatrician',
+      'Gynecologist',
+      'Orthopedic',
+      'ENT Specialist',
+      'Ophthalmologist',
+      'Dentist'
+    ];
+    
+    const bookingForm = h('form', {class:'booking-form', onsubmit: (e) => {
+      e.preventDefault();
+      alert('Appointment booking demo - In the full version, your appointment would be scheduled.');
+    }}, [
+      h('div', {class:'form-group'}, [
+        h('label', {for:'specialty'}, 'Select Specialty:'),
+        (() => {
+          const select = h('select', {id:'specialty', required:true});
+          select.appendChild(h('option', {value:''}, 'Choose a specialty'));
+          specialties.forEach(specialty => {
+            select.appendChild(h('option', {value:specialty.toLowerCase().replace(' ', '-')}, specialty));
+          });
+          return select;
+        })()
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'date'}, 'Preferred Date:'),
+        h('input', {type:'date', id:'date', required:true, min: new Date().toISOString().split('T')[0]})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'time'}, 'Preferred Time:'),
+        h('select', {id:'time', required:true}, [
+          h('option', {value:''}, 'Select a time'),
+          h('option', {value:'morning'}, 'Morning (9AM - 12PM)'),
+          h('option', {value:'afternoon'}, 'Afternoon (12PM - 4PM)'),
+          h('option', {value:'evening'}, 'Evening (4PM - 8PM)')
+        ])
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'notes'}, 'Additional Notes:'),
+        h('textarea', {id:'notes', rows:'4', placeholder:'Describe your symptoms or reason for visit'})
+      ]),
+      h('button', {type:'submit', class:'btn btn-primary'}, 'Book Appointment')
+    ]);
+    
+    main.appendChild(bookingForm);
+    
+    // Add back button
+    main.appendChild(h('div', {class:'actions', style:'margin-top:20px'}, [
+      h('a', {class:'link back-link', href:'javascript:history.back()'}, 'Back to Dashboard')
+    ]));
+  }
+
+  // Function to render the Medicine Reminders page
+  function renderMedicineReminders() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Medicine Reminders'),
+      h('p', {class:'persona-sub'}, 'Set up reminders for your medications')
+    ]));
+    
+    const reminderForm = h('form', {class:'reminder-form', onsubmit: (e) => {
+      e.preventDefault();
+      alert('Reminder set successfully (demo) - In the full version, you would receive reminders at the specified times.');
+    }}, [
+      h('div', {class:'form-group'}, [
+        h('label', {for:'med-name'}, 'Medication Name:'),
+        h('input', {type:'text', id:'med-name', required:true, placeholder:'e.g., Aspirin'})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'dosage

@@ -73,16 +73,26 @@
     }
   };
 
-  const PROFILES = [
+  // Original detailed profiles
+  const DETAILED_PROFILES = [
     { slug: 'young-men', key: 'youngMen', sub: 'ymSub', tag: 'ymTag', icon: '🏃' },
     { slug: 'adult-men', key: 'adultMen', sub: 'amSub', tag: 'amTag', icon: '🧑‍⚕️' },
     { slug: 'young-women', key: 'youngWomen', sub: 'ywSub', tag: 'ywTag', icon: '🌸' },
     { slug: 'adult-women', key: 'adultWomen', sub: 'awSub', tag: 'awTag', icon: '👩‍⚕️' },
     { slug: 'older-adults', key: 'olderAdults', sub: 'oaSub', tag: 'oaTag', icon: '🧓' }
   ];
+  
+  // Main category profiles for landing page
+  const MAIN_CATEGORIES = [
+    { slug: 'men', key: 'Men', icon: '👨', subCategories: ['young-men', 'adult-men'] },
+    { slug: 'women', key: 'Women', icon: '👩', subCategories: ['young-women', 'adult-women'] },
+    { slug: 'elderly', key: 'Elderly', icon: '🧓', directSlug: 'older-adults' }
+  ];
 
   const routes = {
     '/': renderLanding,
+    '/category/men': () => renderSubCategories('men'),
+    '/category/women': () => renderSubCategories('women'),
     '/persona/young-men': () => renderPersona('young-men'),
     '/persona/adult-men': () => renderPersona('adult-men'),
     '/persona/young-women': () => renderPersona('young-women'),
@@ -90,8 +100,55 @@
     '/persona/older-adults': () => renderPersona('older-adults'),
     '/chat': () => alert('AI Health Chat (demo)'),
     '/appointments/new': () => alert('Book a Doctor (demo)'),
-    '/reminders': () => alert('Medicine Reminders (demo)')
+    '/reminders': () => alert('Medicine Reminders (demo)'),
+    '/young-men/diet': () => renderDietPage(),
+    '/young-men/bmi-calculator': () => renderBMICalculator(),
+    '/young-men/workout': () => renderWorkoutPage()
   };
+  
+  // Function to render sub-categories for Men and Women
+  function renderSubCategories(categorySlug) {
+    const category = MAIN_CATEGORIES.find(c => c.slug === categorySlug);
+    if (!category) return renderLanding();
+    
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {class:'persona-title'}, `Choose ${category.key} Profile`),
+      h('p', {class:'persona-sub'}, `Select the profile that best matches your needs`),
+      h('a', {class:'link back-link', href:'#/', style:'display:block;margin-top:1rem;'}, 'Back to Main Categories')
+    ]));
+    
+    const grid = h('div', {class:'grid grid-profiles', role:'list'});
+    
+    // Get the sub-categories from DETAILED_PROFILES based on the category's subCategories array
+    const subProfiles = DETAILED_PROFILES.filter(p => category.subCategories.includes(p.slug));
+    
+    subProfiles.forEach(p => {
+      const card = h('article', {class:'card persona-card', tabindex:'0', role:'listitem', 'aria-label': i18n.t(p.key)}, [
+        h('div', {class:'persona-top'}, [
+          h('span', {class:'persona-icon', 'aria-hidden':'true'}, p.icon),
+          h('div', {}, [
+            h('div', {class:'persona-title'}, i18n.t(p.key)),
+            h('div', {class:'persona-sub'}, i18n.t(p.sub))
+          ])
+        ]),
+        h('div', {class:'actions'}, [
+          h('button', {class:'btn btn-primary', 'aria-label': `${i18n.t('continue')} – ${i18n.t(p.key)}`, onClick: ()=> navigate(`/persona/${p.slug}`)}, i18n.t('continue'))
+        ])
+      ]);
+      
+      card.addEventListener('click', () => navigate(`/persona/${p.slug}`));
+      card.addEventListener('keyup', (e) => { 
+        if (e.key === 'Enter' || e.key === ' ') navigate(`/persona/${p.slug}`);
+      });
+      
+      grid.appendChild(card);
+    });
+    
+    main.appendChild(grid);
+  }
 
   function h(tag, attrs={}, children=[]) {
     const el = document.createElement(tag);
@@ -121,21 +178,50 @@
     ]));
 
     const grid = h('div', {class:'grid grid-profiles', role:'list'});
-  PROFILES.forEach(p => {
-      const card = h('article', {class:'card persona-card', tabindex:'0', role:'listitem', 'aria-label': i18n.t(p.key)}, [
+    MAIN_CATEGORIES.forEach(category => {
+      const card = h('article', {class:'card persona-card', tabindex:'0', role:'listitem', 'aria-label': category.key}, [
         h('div', {class:'persona-top'}, [
-          h('span', {class:'persona-icon', 'aria-hidden':'true'}, p.icon),
+          h('span', {class:'persona-icon', 'aria-hidden':'true'}, category.icon),
           h('div', {}, [
-            h('div', {class:'persona-title'}, i18n.t(p.key)),
-            h('div', {class:'persona-sub'}, i18n.t(p.sub))
+            h('div', {class:'persona-title'}, category.key),
+            h('div', {class:'persona-sub'}, category.directSlug ? 
+              `Direct access to ${category.key} dashboard` : 
+              `Choose between different ${category.key} profiles`)
           ])
         ]),
         h('div', {class:'actions'}, [
-          h('button', {class:'btn btn-primary', 'aria-label': `${i18n.t('continue')} – ${i18n.t(p.key)}`, onClick: ()=> navigate(`/persona/${p.slug}`)}, i18n.t('continue'))
+          h('button', {class:'btn btn-primary', 'aria-label': `${i18n.t('continue')} – ${category.key}`, 
+            onClick: ()=> {
+              if (category.directSlug) {
+                // For Elderly, navigate directly to the dashboard
+                navigate(`/persona/${category.directSlug}`);
+              } else {
+                // For Men and Women, navigate to sub-category selection
+                navigate(`/category/${category.slug}`);
+              }
+            }}, 
+            i18n.t('continue'))
         ])
       ]);
-      card.addEventListener('click',()=> navigate(`/persona/${p.slug}`));
-      card.addEventListener('keyup',(e)=>{ if(e.key==='Enter' || e.key===' ') navigate(`/persona/${p.slug}`); });
+      
+      card.addEventListener('click', () => {
+        if (category.directSlug) {
+          navigate(`/persona/${category.directSlug}`);
+        } else {
+          navigate(`/category/${category.slug}`);
+        }
+      });
+      
+      card.addEventListener('keyup', (e) => { 
+        if (e.key === 'Enter' || e.key === ' ') {
+          if (category.directSlug) {
+            navigate(`/persona/${category.directSlug}`);
+          } else {
+            navigate(`/category/${category.slug}`);
+          }
+        }
+      });
+      
       grid.appendChild(card);
     });
     main.appendChild(grid);
@@ -164,17 +250,41 @@
   }
 
   function renderPersona(slug){
-    const meta = PROFILES.find(p=>p.slug===slug);
+    const meta = DETAILED_PROFILES.find(p=>p.slug===slug);
     const main = $('#main');
     main.innerHTML = '';
     
     // Create navigation panel for the left side
-    const navPanel = h('nav', {class:'sidebar nav-panel', role:'navigation'}, [
-      h('div', {class:'badge nav-badge'}, [meta.icon, i18n.t(meta.key)]),
-      h('h2', {}, i18n.t('quickActions')),
-      quickActions(),
-      h('a', {class:'link back-link', href:'#/'}, i18n.t('backToPersonas'))
-    ]);
+    const navPanelItems = [
+      h('div', {class:'badge nav-badge'}, [meta.icon, i18n.t(meta.key)])
+    ];
+    
+    // For Young Men, use 'Features' as the section title
+    if (slug === 'young-men') {
+      navPanelItems.push(h('h2', {}, 'Features'));
+      
+      // Use buttons for all features to maintain consistent styling
+      const btn = (text, to) => h('button', {class:'btn btn-primary', onClick:()=>navigate(to)}, text);
+      
+      // Add all features as buttons with consistent styling
+      navPanelItems.push(h('div', {class:'actions'}, [
+        btn(i18n.t('aiHealthChat'), '/chat'),
+        btn(i18n.t('bookDoctor'), '/appointments/new'),
+        btn(i18n.t('medReminders'), '/reminders'),
+        btn('Diet', '/young-men/diet'),
+        btn('BMI Calculator', '/young-men/bmi-calculator'),
+        btn('Workout', '/young-men/workout')
+      ]));
+    } else {
+      // For other personas, use 'Quick Actions' as the section title
+      navPanelItems.push(h('h2', {}, i18n.t('quickActions')));
+      navPanelItems.push(quickActions());
+    }
+    
+    // Back to Personas link
+    navPanelItems.push(h('a', {class:'link back-link', href:'#/'}, i18n.t('backToPersonas')));
+    
+    const navPanel = h('nav', {class:'sidebar nav-panel', role:'navigation'}, navPanelItems);
     
     // Create main content area
     const contentArea = h('div', {class:'content-area'}, [
@@ -193,6 +303,93 @@
     main.appendChild(layout);
   }
 
+  // Diet page with placeholder content
+  function renderDietPage() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Diet'),
+      h('p', {class:'persona-sub'}, 'Nutrition tips and meal plans coming soon.')
+    ]));
+  }
+  
+  // BMI Calculator page
+  function renderBMICalculator() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'BMI Calculator'),
+      h('p', {class:'persona-sub'}, 'Calculate your Body Mass Index')
+    ]));
+    
+    const calculatorForm = h('form', {class:'bmi-form', onsubmit: (e) => {
+      e.preventDefault();
+      calculateBMI();
+    }}, [
+      h('div', {class:'form-group'}, [
+        h('label', {for:'weight'}, 'Weight (kg):'),
+        h('input', {type:'number', id:'weight', min:'30', max:'300', required:true, placeholder:'Enter weight in kg'})
+      ]),
+      h('div', {class:'form-group'}, [
+        h('label', {for:'height'}, 'Height (cm):'),
+        h('input', {type:'number', id:'height', min:'100', max:'250', required:true, placeholder:'Enter height in cm'})
+      ]),
+      h('button', {type:'submit', class:'btn btn-primary'}, 'Calculate')
+    ]);
+    
+    const resultDiv = h('div', {id:'bmi-result', class:'bmi-result'});
+    
+    const container = h('div', {class:'bmi-container'}, [
+      calculatorForm,
+      resultDiv
+    ]);
+    
+    main.appendChild(container);
+    
+    // Function to calculate BMI
+    function calculateBMI() {
+      const weight = parseFloat($('#weight').value);
+      const height = parseFloat($('#height').value) / 100; // Convert cm to meters
+      
+      if (isNaN(weight) || isNaN(height) || height <= 0 || weight <= 0) {
+        resultDiv.innerHTML = '<p class="error">Please enter valid values</p>';
+        return;
+      }
+      
+      const bmi = weight / (height * height);
+      let category = '';
+      
+      if (bmi < 18.5) {
+        category = 'Underweight';
+      } else if (bmi < 25) {
+        category = 'Normal';
+      } else if (bmi < 30) {
+        category = 'Overweight';
+      } else {
+        category = 'Obese';
+      }
+      
+      resultDiv.innerHTML = `
+        <h3>Your BMI Result</h3>
+        <p><strong>BMI:</strong> ${bmi.toFixed(2)}</p>
+        <p><strong>Category:</strong> ${category}</p>
+      `;
+    }
+  }
+  
+  // Workout page with motivational heading
+  function renderWorkoutPage() {
+    const main = $('#main');
+    main.innerHTML = '';
+    
+    main.appendChild(h('section', {class:'hero'}, [
+      h('h1', {}, 'Workouts to Keep You Fit'),
+      h('p', {class:'persona-sub'}, 'Bodyweight workout videos and their benefits coming soon.')
+    ]));
+  }
+  
   function route(){
     const hash = location.hash.replace(/^#/, '') || '/';
     const match = routes[hash];
